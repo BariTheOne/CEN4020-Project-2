@@ -7,13 +7,19 @@ class MeetingTime:
     def to_minutes(self, time_str):
         hours, minutes = map(int, time_str.split(":"))
         return hours * 60 + minutes
+    
+    def to_hour_minute(self, minutes : int) -> str:
+        return f"{minutes//60}:{minutes%60:02d}"
 
     def overlaps_with(self, other):
         if self.day != other.day:
             return False
         return self.start_time < other.end_time and self.end_time > other.start_time
+    
+    def __str__(self):
+        return f"""{self.day} {self.to_hour_minute(self.start_time)} - {self.to_hour_minute(self.end_time)}"""
 
-
+"""
 class CourseSection:
     def __init__(self, crn, course_code, instructor, room, meeting_times):
         self.crn = crn
@@ -31,6 +37,7 @@ class CourseSection:
 
     def __str__(self):
         return f"{self.course_code} ({self.crn}) - {self.instructor}"
+"""
 
 
 class Schedule:
@@ -38,8 +45,8 @@ class Schedule:
         self.sections = []
 
     def add_section(self, new_section):
-        if self.has_conflict(new_section):
-            return False
+        #if self.has_conflict(new_section):
+        #    return False
         self.sections.append(new_section)
         return True
 
@@ -58,3 +65,10 @@ class Schedule:
 
     def get_all_sections(self):
         return self.sections
+    
+    def __str__(self):
+        result = "---START OF SCHEDULE---\n"
+        for section in self.sections:
+            result += section.__str__() + "\n"
+        result += "----END OF SCHEDULE----"
+        return result
