@@ -137,7 +137,7 @@ class ExcelManager:
                     "Level"	INTEGER NOT NULL,
                     "Section"	TEXT NOT NULL,
                     "Subject"	TEXT NOT NULL,
-                    "Number"	INTEGER NOT NULL,
+                    "Number"	TEXT NOT NULL,
                     "Title"	TEXT NOT NULL,
                     "Enrollment"    INTEGER,
                     "Capacity"  INTEGER,

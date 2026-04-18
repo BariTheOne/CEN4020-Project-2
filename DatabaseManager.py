@@ -54,6 +54,283 @@ class DatabaseManager:
             print("Error!:", error)
             return False
 
+    def updatePerson(self, person : User) -> bool:
+        """
+        Updates a student, instructor, or TA in the database.
+        Returns True on success. False otherwise.
+
+        :person: the person to be updated
+        """
+
+        #check if the person does not exists
+        if self._getPersonID(person) == None:
+            print("Error!: This person does not exists.")
+            return False
+
+        #identify the person
+        sql_command = ""
+        sql_data = None
+        if isinstance(person, Student):
+            sql_command = """
+            UPDATE Students 
+            SET (Name, Email) = (?, ?)
+            WHERE Email = ?;
+            """
+            sql_data = (
+                person.name,
+                person.email,
+                person.email
+            )
+        elif isinstance(person, TA):
+            sql_command = """
+            UPDATE TeachingAssistants
+            SET (Name, Email, Level) = (?, ?, ?)
+            WHERE Email = ?;
+            """
+            sql_data = (
+                person.name,
+                person.email,
+                person.ta_type,
+                person.email
+            )
+        elif isinstance(person, Instructor):
+            sql_command = """
+            UPDATE Instructors
+            SET (Name, Email) = (?, ?)
+            WHERE Email = ?;
+            """
+            sql_data = (
+                person.name,
+                person.email,
+                person.email
+            )
+        else:
+            print("Error!: This person cannot be updated.")
+            return False
+        
+        #then remove the section by SQL
+        try:
+            self._cursor.execute(
+                sql_command,
+                sql_data
+            )
+            self._connection.commit()
+            return True
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+    def deletePerson(self, person : User) -> bool:
+        """
+        Deletes a student, instructor, or TA from the database.
+        Returns True on success. False otherwise.
+
+        :person: The person to be removed
+        """
+
+        #check if the person does not exists
+        if self._getPersonID(person) == None:
+            print("Error!: This person does not exists.")
+            return False
+
+        #first get all the courses this person is related to
+        schedule = self.getScheduleOfPerson(person).sections
+
+        #iterate through everyone to remove their connection
+        for section in schedule:
+            self._removeSectionFromPerson(person, section.crn)
+
+        #identify the person
+        sql_command = ""
+        if isinstance(person, Student):
+            sql_command = """
+            DELETE FROM "Students" WHERE Email = ?;
+            """
+        elif isinstance(person, TA):
+            sql_command = """
+            DELETE FROM "TeachingAssistants" WHERE Email = ?;
+            """
+        elif isinstance(person, Instructor):
+            sql_command = """
+            DELETE FROM "Instructors" WHERE Email = ?;
+            """
+        else:
+            print("Error!: This person cannot be deleted.")
+            return False
+        
+        #then remove the section by SQL
+        try:
+            self._cursor.execute(
+                sql_command,
+                (person.email, )
+            )
+            self._connection.commit()
+            return True
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+    def insertNewSection(self, section : CourseSection) -> bool:
+        """
+        Adds a new section to the database.
+        Returns True on success. False otherwise.
+
+        :person: The section to be added.
+        """
+        #check if the person already exists
+        if self._checkCRN(section.crn) == True:
+            print("Error!: This section already exists.")
+            return False
+
+        #check the meeting times
+        meeting_day = None
+        meeting_start_time = None
+        meeting_end_time = None
+        meeting_time = section.meeting_time
+        if meeting_time != None and meeting_time.TBD == False:
+            meeting_day = meeting_time.day
+            meeting_start_time = datetime.strptime(meeting_time.to_hour_minute(meeting_time.start_time), "%I:%M %p").isoformat()
+            meeting_end_time = datetime.strptime(meeting_time.to_hour_minute(meeting_time.end_time), "%I:%M %p").isoformat()
+
+        #organize the course data
+        course_data = (
+            section.crn,   #CRN
+            section.campus,   #Campus
+            section.level,   #Level
+            section.section_number,   #Section
+            section.subject,   #Subject
+            section.number,   #Number
+            section.title,   #Title
+            section.enrolled_count,   #Enrollment
+            section.capacity,            #Capacity
+            meeting_day,  #MeetingDays
+            meeting_start_time,               #MeetingStartTime
+            meeting_end_time,               #MeetingEndTime
+            section.meeting_room,  #MeetingRoom
+        )
+
+        #query the database
+        try:
+            self._cursor.execute(
+                """
+                INSERT INTO "Courses" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT("CRN") DO NOTHING;
+                """,
+                course_data
+            )
+            self._connection.commit()
+            return True
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+    def updateSection(self, section : CourseSection) -> bool:
+        """
+        Deletes a section from the database.
+        Returns True on success. False otherwise.
+
+        :crn: Course Registration Number
+        """
+
+        #check if the person does not exists
+        if self._checkCRN(section.crn) == False:
+            print("Error!: This section does not exists.")
+            return False
+        
+        #check the meeting times
+        meeting_day = None
+        meeting_start_time = None
+        meeting_end_time = None
+        meeting_time = section.meeting_time
+        if meeting_time != None and meeting_time.TBD == False:
+            meeting_day = meeting_time.day
+            meeting_start_time = datetime.strptime(meeting_time.to_hour_minute(meeting_time.start_time), "%I:%M %p").isoformat()
+            meeting_end_time = datetime.strptime(meeting_time.to_hour_minute(meeting_time.end_time), "%I:%M %p").isoformat()
+
+        #organize the course data
+        course_data = (
+            section.campus,   #Campus
+            section.level,   #Level
+            section.section_number,   #Section
+            section.subject,   #Subject
+            section.number,   #Number
+            section.title,   #Title
+            section.enrolled_count,   #Enrollment
+            section.capacity,            #Capacity
+            meeting_day,  #MeetingDays
+            meeting_start_time,               #MeetingStartTime
+            meeting_end_time,               #MeetingEndTime
+            section.meeting_room,  #MeetingRoom
+            section.crn,            #CRN
+        )
+
+        #then update the section by SQL
+        try:
+            self._cursor.execute(
+                """
+                UPDATE Courses
+                SET (Campus, 
+                    Level, 
+                    Section, 
+                    Subject, 
+                    Number, 
+                    Title,
+                    Enrollment,
+                    Capacity,
+                    MeetingDays,
+                    MeetingStartTime,
+                    MeetingEndTime,
+                    MeetingRoom) = (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                WHERE CRN = ?;
+                """,
+                course_data
+            )
+            self._connection.commit()
+            return True
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+    def deleteSection(self, crn : int) -> bool:
+        """
+        Deletes a section from the database.
+        Returns True on success. False otherwise.
+
+        :crn: Course Registration Number
+        """
+
+        #check if the person does not exists
+        if self._checkCRN(crn) == False:
+            print("Error!: This section does not exists.")
+            return False
+
+        #first get everyone who is related to that section
+        students = self.getStudentsFromCRN(crn)
+        instructors = self.getInstructorsFromCRN(crn)
+        TAs = self.getTAsFromCRN(crn)
+
+        #iterate through everyone to remove their connection
+        for s in students:
+            self.removeStudentFromSection(s, crn)
+        for i in instructors:
+            self.removeInstructorFromSection(i, crn)
+        for t in TAs:
+            self.removeTAFromSection(t)
+        
+        #then remove the section by SQL
+        try:
+            self._cursor.execute(
+                """
+                DELETE FROM Courses WHERE CRN = ?;
+                """,
+                (crn, )
+            )
+            self._connection.commit()
+            return True
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
     def getAllSections(self) -> list[CourseSection]:
         """
         Get the corresponding section information from a CRN.
@@ -277,7 +554,7 @@ class DatabaseManager:
             )
         except sqlite3.Error as error:
             print("Error!", error)
-            return 
+            return []
         instructor_tuples = sql_results.fetchall()
 
         #create a list
@@ -312,7 +589,7 @@ class DatabaseManager:
             )
         except sqlite3.Error as error:
             print("Error!", error)
-            return 
+            return []
         instructor_tuples = sql_results.fetchall()
 
         #create a list
@@ -343,7 +620,7 @@ class DatabaseManager:
             )
         except sqlite3.Error as error:
             print("Error!", error)
-            return 
+            return []
         ta_tuples = sql_results.fetchall()
 
         #create a list
@@ -379,7 +656,7 @@ class DatabaseManager:
             )
         except sqlite3.Error as error:
             print("Error!", error)
-            return 
+            return []
         ta_tuples = sql_results.fetchall()
 
         #create a list
@@ -409,7 +686,7 @@ class DatabaseManager:
             )
         except sqlite3.Error as error:
             print("Error!", error)
-            return
+            return []
         student_tuples = sql_results.fetchall()
 
         #create a list
@@ -435,7 +712,7 @@ class DatabaseManager:
                 """
                 SELECT
                     Students.Name,
-                    Students.Email,
+                    Students.Email
                 FROM Students
                     JOIN CourseStudent ON Students.ID = CourseStudent.StudentID
                 WHERE CourseStudent.CRN = ?;
@@ -444,7 +721,7 @@ class DatabaseManager:
             )
         except sqlite3.Error as error:
             print("Error!", error)
-            return 
+            return []
         student_tuples = sql_results.fetchall()
 
         #create a list
@@ -660,7 +937,7 @@ class DatabaseManager:
         else:
             #if it's not an acceptable person, quit
             print("Error!: The person is not a student, TA, or instructor. Please try again.")
-            return
+            return False
         
         #query the database
         try:
@@ -714,6 +991,9 @@ class DatabaseManager:
             sql_command = """
             INSERT INTO "CourseInstructor" (CRN, InstructorID) VALUES (?, ?);
             """
+        else:
+            print("Error!: This person cannot be assigned to a section.")
+            return False
         
         #query the database
         try:
@@ -759,12 +1039,15 @@ class DatabaseManager:
             """
         elif isinstance(person, TA):
             sql_command = """
-            DELETE FROM "CourseTA" (CRN, TAID) = (?, ?);
+            DELETE FROM "CourseTA" WHERE (CRN, TAID) = (?, ?);
             """
         elif isinstance(person, Instructor):
             sql_command = """
-            DELETE FROM "CourseInstructor" (CRN, InstructorID) = (?, ?);
+            DELETE FROM "CourseInstructor" WHERE (CRN, InstructorID) = (?, ?);
             """
+        else:
+            print("Error!: This person cannot be removed from a section.")
+            return False
         
         #query the database
         try:
@@ -847,7 +1130,7 @@ class DatabaseManager:
     
     def removeTAFromSection(self, ta : TA, crn : int) -> bool:
         """
-        Assigns a TA to a section.
+        Removes a TA from a section.
         Returns True on success. False otherwise.
 
         :ta: TA
@@ -878,11 +1161,107 @@ class DatabaseManager:
         )
         self._connection.commit()
 
+    def removeInstructorFromSection(self, instructor : Instructor, crn : int) -> bool:
+        """
+        Removes a instructor from a section.
+        Returns True on success. False otherwise.
+
+        :instructor: Instructor
+        :crn: Course Registration Number
+        """
+        return self._removeSectionFromPerson(instructor, crn)
+
+    #The following are filter methods. they do not access the database.
+    def filterBySubject(self, section_list : list[CourseSection], subject : str, number : str = None) -> list[CourseSection]:
+        """
+        Filters a list of CourseSection objects to only the sections of a specific subject (and number) specified.
+        Returns a list of CourseSection objects.
+
+        :section_list: A list of CourseSection objects
+        :subject: Three letter subject
+        :number: Optional number that follows the subject (e.g., CEN 4020)
+        """
+
+        #create a list
+        result = []
+
+        #iterate through the input list
+        for section in section_list:
+            if number != None:
+                if section.subject == subject and section.number == number:
+                    result.append(section)
+            else:
+                if section.subject == subject:
+                    result.append(section)
+
+        #return the result
+        return result
+    
+    def filterFullSectionsOut(self, section_list : list[CourseSection]) -> list[CourseSection]:
+        """
+        Filters a list of CourseSection objects to only the sections that are open.
+        Returns a list of CourseSection objects.
+
+        :section_list: A list of CourseSection objects
+        """
+
+        #create a list
+        result = []
+
+        #iterate through the input list
+        for section in section_list:
+            if not section.is_full():
+                result.append(section)
+
+        #return the result
+        return result
+    
+    #borrowed from France
+    def _to_minutes(self, time_str):
+        hours, minutes = map(int, time_str.split(":"))
+        return hours * 60 + minutes
+
+    def filterByTime(self, section_list : list[CourseSection], time : str) -> list[CourseSection]:
+        """
+        Filters a list of CourseSection objects to only the sections that are in a time period (morning, afternoon, evening).
+        Sections without a meeting time will not show up.
+        Returns a list of CourseSection objects.
+
+        :section_list: A list of CourseSection objects
+        :time: Either "morning", "afternoon", or "evening"
+        """
+
+        #define the cut-off time
+        e_cutoff_time = None
+        s_cutoff_time = None
+        if time == "morning":
+            e_cutoff_time = self._to_minutes("12:00")
+            s_cutoff_time = self._to_minutes("6:00")
+        elif time == "afternoon":
+            e_cutoff_time = self._to_minutes("18:00")
+            s_cutoff_time = self._to_minutes("12:00")
+        elif time == "evening":
+            e_cutoff_time = self._to_minutes("6:00")
+            s_cutoff_time = self._to_minutes("18:00")
+        else:
+            print("Error!: Not a recognized time.")
+            return []
+        
+        #create a list
+        result = []
+
+        #iterate through the input list
+        for section in section_list:
+            if section.meeting_time.TBD == False and section.meeting_time.start_time < e_cutoff_time and section.meeting_time.start_time >= s_cutoff_time:
+                result.append(section)
+
+        #return the result
+        return result
+
 
 #DEBUGGING
 if __name__ == "__main__":
     dbm = DatabaseManager("./BelliniClassesS26.db")
-    print("First round of testing.")
 
     """
     results = dbm.getSectionFromCRN(14880)
@@ -932,13 +1311,15 @@ if __name__ == "__main__":
     dbm._assignSectionToPerson(instructor, 14882)
     """
 
+    """
     print("Instructor Count:", len(dbm.getAllInstructors()))
     print("TA Count:", len(dbm.getAllTAs()))
     print("Student Count:", len(dbm.getAllStudents()))
     print("Section Count:", len(dbm.getAllSections()))
     print()
+    """
 
-
+    """
     student = Student("John Doe", "test@usf.edu")
     dbm.insertNewPerson(student)
     course = dbm.getSectionFromCRN(14330)
@@ -962,3 +1343,28 @@ if __name__ == "__main__":
     print(dbm.getScheduleOfPerson(student))
     print("\tEnrollment:", course.enrolled_count)
     print()
+
+    student.name = "Johaness W. Doe"
+    dbm.updatePerson(student)
+    print(dbm.getAllStudents()[0].name)
+
+    dbm.deletePerson(student)
+    print(dbm.getAllStudents())
+
+    course = dbm.getSectionFromCRN(14880)
+    course.capacity = 1
+    dbm.updateSection(course)
+    course = dbm.getSectionFromCRN(14880)
+    print(course.capacity)
+    """
+
+    sections = dbm.getAllSections()
+    sections = dbm.filterByTime(sections, "morning")
+    sections = dbm.filterFullSectionsOut(sections)
+    sections = dbm.filterBySubject(sections, subject="CIS", number="4930")
+
+    for section in sections:
+        print(section)
+
+    print("Length of results:", len(sections))
+

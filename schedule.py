@@ -10,7 +10,8 @@ class MeetingTime:
         return hours * 60 + minutes
     
     def to_hour_minute(self, minutes : int) -> str:
-        return f"{minutes//60}:{minutes%60:02d}"
+        am_pm = "AM" if (((minutes//60))//12 == 0) else "PM"
+        return f"{12 if ((minutes//60)%12 == 0) else (minutes//60)%12}:{minutes%60:02d} {am_pm}"
 
     def overlaps_with(self, other):
         if self.day != other.day:
