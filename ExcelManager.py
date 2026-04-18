@@ -6,7 +6,6 @@ import re
 #-------------------------
 #   AUXILLARY FUNCTIONS
 #-------------------------
-
 def _splitTimeRange(input : str) -> tuple[str]:
     #check if the string is empty first
     if input == None or input.isspace():
@@ -100,6 +99,222 @@ class ExcelManager:
         self._map = {_cleanColumnName(cell.value): cell.column - 1 for cell in self._sheet[1]}
         print(self._map)
 
+    def _safeEnrollmentCount(self, row) -> int:
+        if "ENROLLMENT" not in self._map.keys():
+            return 0
+        else:
+            num = row[self._map["ENROLLMENT"]].value
+            if not isinstance(num, int):
+                return 0
+            else:
+                return num
+    
+    def _safeCapacity(self, row) -> int:
+        if "CAPACITY" not in self._map.keys():
+            return 30
+        else:
+            num = row[self._map["CAPACITY"]].value
+            if not isinstance(num, int):
+                return 30
+            else:
+                return num
+
+    #the following methods are really to made the code easier to read.
+    def _createTables(self, connection : sqlite3.Connection, cursor : sqlite3.Cursor) -> bool:
+        """
+        Creates new tables if they do not exist. Returns False on error. Does not close the connection!
+
+        :connection: Connection to the database
+        :cursor: Cursor of the connection
+        """
+        try:
+            #create a table for courses if it doesn't exist
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "Courses" (
+                    "CRN"	INTEGER NOT NULL UNIQUE,
+                    "Campus"    TEXT NOT NULL,
+                    "Level"	INTEGER NOT NULL,
+                    "Section"	TEXT NOT NULL,
+                    "Subject"	TEXT NOT NULL,
+                    "Number"	INTEGER NOT NULL,
+                    "Title"	TEXT NOT NULL,
+                    "Enrollment"    INTEGER,
+                    "Capacity"  INTEGER,
+                    "MeetingDays"	INTEGER,
+                    "MeetingStartTime"	TEXT,
+                    "MeetingEndTime"	TEXT,
+                    "MeetingRoom"	TEXT,
+                    PRIMARY KEY("CRN")
+                );
+                """
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+        
+        try:
+            #create a table for instructors if it doesn't exist
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "Instructors" (
+                    "ID"	INTEGER NOT NULL UNIQUE,
+                    "Name"	TEXT NOT NULL,
+                    "Email"	TEXT    UNIQUE,
+                    PRIMARY KEY("ID" AUTOINCREMENT)
+                );
+                """
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+        try:
+            #create a junction table for instructor-course pairs if it doesn't exist
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "CourseInstructor" (
+                    "ID"    INTEGER NOT NULL UNIQUE,
+                    "CRN"	INTEGER NOT NULL,
+                    "InstructorID"	INTEGER NOT NULL,
+                    CONSTRAINT "CRN" FOREIGN KEY("CRN") REFERENCES "Courses"("CRN"),
+                    CONSTRAINT "InstructorID" FOREIGN KEY("InstructorID") REFERENCES "Instructors"("ID")
+                    PRIMARY KEY("ID" AUTOINCREMENT)
+                );
+                """
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+        try:
+            #create a table for TAs if it doesn't exist
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "TeachingAssistants" (
+                    "ID"	INTEGER NOT NULL UNIQUE,
+                    "Name"	TEXT NOT NULL,
+                    "Email" TEXT    UNIQUE,
+                    "Level" TEXT,
+                    PRIMARY KEY("ID" AUTOINCREMENT)
+                );
+                """
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+        try:
+            #create a junction table for TA-course pairs if it doesn't exist
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "CourseTA" (
+                    "ID"    INTEGER NOT NULL UNIQUE,
+                    "CRN"	INTEGER NOT NULL,
+                    "TAID"	INTEGER NOT NULL,
+                    CONSTRAINT "CRN" FOREIGN KEY("CRN") REFERENCES "Courses"("CRN"),
+                    CONSTRAINT "TAID" FOREIGN KEY("TAID") REFERENCES "TeachingAssistants"("ID")
+                    PRIMARY KEY("ID" AUTOINCREMENT)
+                );
+                """
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+        
+        try:
+            #create a table for studentss if it doesn't exist
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "Students" (
+                    "ID"	INTEGER NOT NULL UNIQUE,
+                    "Name"	TEXT NOT NULL,
+                    "Email" TEXT    UNIQUE,
+                    PRIMARY KEY("ID" AUTOINCREMENT)
+                );
+                """
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+
+        try:
+            #create a junction table for student-course pairs if it doesn't exist
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "CourseStudent" (
+                    "ID"    INTEGER NOT NULL UNIQUE,
+                    "CRN"	INTEGER NOT NULL,
+                    "StudentID"	INTEGER NOT NULL,
+                    CONSTRAINT "CRN" FOREIGN KEY("CRN") REFERENCES "Courses"("CRN"),
+                    CONSTRAINT "StudentID" FOREIGN KEY("StudentID") REFERENCES "Student"("UNumber")
+                    PRIMARY KEY("ID" AUTOINCREMENT)
+                );
+                """
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+        
+        #commit the changes
+        connection.commit()
+        return True
+    
+    def _insertCourse(self, connection : sqlite3.Connection, cursor : sqlite3.Cursor, course_data : tuple) -> bool:        
+        #add the data through a prepared statement
+        try: 
+            cursor.execute(
+                """
+                INSERT INTO "Courses" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT("CRN") DO NOTHING;
+                """,
+                course_data
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+        
+        #commit the changes
+        connection.commit()
+        return True
+            
+    def _insertInstructor(self, connection : sqlite3.Connection, cursor : sqlite3.Cursor, instructor_data : tuple) -> bool:
+        #add the data through a prepared statement
+        try: 
+            cursor.execute(
+                """
+                INSERT INTO "Instructors" (Name, Email) VALUES (?, ?)
+                ON CONFLICT DO NOTHING;
+                """,
+                instructor_data
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+        
+        #commit the changes
+        connection.commit()
+        return True
+
+    def _insertTA(self, connection : sqlite3.Connection, cursor : sqlite3.Cursor, ta_data : tuple) -> bool:
+        #add the data through a prepared statement
+        try: 
+            cursor.execute(
+                """
+                INSERT INTO "TeachingAssistants" (Name, Email, Level) VALUES (?, ?, ?)
+                ON CONFLICT DO NOTHING;
+                """,
+                ta_data
+            )
+        except sqlite3.Error as error:
+            print("Error!:", error)
+            return False
+        
+        #commit the changes
+        connection.commit()
+        return True
+
+    #ADD TO DATABASE FROM SHEET
     def addToDatabaseFromSheet(self, database_name : str, database_filepath = ""):
         #get the full path
         full_path = database_filepath + database_name + ".db"
@@ -112,78 +327,8 @@ class ExcelManager:
         seen_instructors = []
         seen_tas = []
 
-        #create a table for courses if it doesn't exist
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS "Courses" (
-                "CRN"	INTEGER NOT NULL UNIQUE,
-                "Campus"    TEXT NOT NULL,
-                "Level"	INTEGER NOT NULL,
-                "Section"	TEXT NOT NULL,
-                "Subject"	TEXT NOT NULL,
-                "Number"	INTEGER NOT NULL,
-                "Title"	TEXT NOT NULL,
-                "MeetingDays"	INTEGER,
-                "MeetingStartTime"	TEXT,
-                "MeetingEndTime"	TEXT,
-                "MeetingRoom"	TEXT,
-                PRIMARY KEY("CRN")
-            );
-            """
-        )
-
-        #create a table for instructors if it doesn't exist
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS "Instructors" (
-                "ID"	INTEGER NOT NULL UNIQUE,
-                "Name"	TEXT NOT NULL,
-                "Email"	TEXT    UNIQUE,
-                PRIMARY KEY("ID" AUTOINCREMENT)
-            );
-            """
-        )
-
-        #create a junction table for instructor-course pairs if it doesn't exist
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS "CourseInstructor" (
-                "ID"    INTEGER NOT NULL UNIQUE,
-                "CRN"	INTEGER NOT NULL,
-                "InstructorID"	INTEGER NOT NULL,
-                CONSTRAINT "CRN" FOREIGN KEY("CRN") REFERENCES "Courses"("CRN"),
-                CONSTRAINT "InstructorID" FOREIGN KEY("InstructorID") REFERENCES "Instructors"("ID")
-                PRIMARY KEY("ID" AUTOINCREMENT)
-            );
-            """
-        )
-
-        #create a table for TAs if it doesn't exist
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS "TeachingAssistants" (
-                "ID"	INTEGER NOT NULL UNIQUE,
-                "Name"	TEXT NOT NULL,
-                "Email" TEXT    UNIQUE,
-                "Level" TEXT,
-                PRIMARY KEY("ID" AUTOINCREMENT)
-            );
-            """
-        )
-
-        #create a junction table for instructor-course pairs if it doesn't exist
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS "CourseTA" (
-                "ID"    INTEGER NOT NULL UNIQUE,
-                "CRN"	INTEGER NOT NULL,
-                "TAID"	INTEGER NOT NULL,
-                CONSTRAINT "CRN" FOREIGN KEY("CRN") REFERENCES "Courses"("CRN"),
-                CONSTRAINT "TAID" FOREIGN KEY("TAID") REFERENCES "TeachingAssistants"("ID")
-                PRIMARY KEY("ID" AUTOINCREMENT)
-            );
-            """
-        )
+        #create tables
+        self._createTables(connection, cursor)
 
         #add course details
         for row in self._sheet.iter_rows(2, self._sheet.max_row):
@@ -196,26 +341,16 @@ class ExcelManager:
                 row[self._map["SUBJ"]].value,   #Subject
                 row[self._map["CRSE NUMB"]].value,   #Number
                 row[self._map["CRSE TITLE"]].value,   #Title
+                self._safeEnrollmentCount(row),   #Enrollment
+                self._safeCapacity(row),            #Capacity
                 row[self._map["MEETING DAYS"]].value,  #MeetingDays
                 _splitTimeRange(row[self._map["MEETING TIMES"]].value)[0],               #MeetingStartTime
                 _splitTimeRange(row[self._map["MEETING TIMES"]].value)[1],               #MeetingEndTime
                 row[self._map["MEETING ROOM"]].value,  #MeetingRoom
             )
 
-            #add the data through a prepared statement
-            try: 
-                cursor.execute(
-                    """
-                    INSERT INTO "Courses" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT("CRN") DO NOTHING;
-                    """,
-                    course_data
-                )
-
-                #commit the change
-                connection.commit()
-            except sqlite3.Error as error:
-                print("Error!:", error)
+            #add the data
+            if self._insertCourse(connection, cursor, course_data) == False:
                 continue
 
             #check if there is an instructor for the class
@@ -231,17 +366,8 @@ class ExcelManager:
                         row[self._map["INSTRUCTOR EMAIL"]].value,  #Email
                     )
 
-                    #add the data through a prepared statement
-                    cursor.execute(
-                        """
-                        INSERT INTO "Instructors" (Name, Email) VALUES (?, ?)
-                        ON CONFLICT DO NOTHING;
-                        """,
-                        instructor_data
-                    )
-
-                    #commit the change
-                    connection.commit()
+                    #add the data
+                    self._insertInstructor(connection, cursor, instructor_data)
 
                 #insert a new entry to the junction table
                 #get the ID of the instructor
@@ -304,17 +430,8 @@ class ExcelManager:
                             "UG" if ug_flag else "GR"
                         )
 
-                        #add the data through a prepared statement
-                        cursor.execute(
-                            """
-                            INSERT INTO "TeachingAssistants" (Name, Email, Level) VALUES (?, ?, ?)
-                            ON CONFLICT DO NOTHING;
-                            """,
-                            ta_data
-                        )
-
-                        #commit the change
-                        connection.commit()
+                        #add the data
+                        self._insertTA(connection, cursor, ta_data)
 
                     #insert a new entry to the junction table
                     #get the ID of the TA
@@ -361,7 +478,7 @@ class ExcelManager:
 
 #DEBUGGING
 if __name__ == "__main__":
-    em = ExcelManager("Bellini Classes S26_NewClassesToBeAddedWhenSystemReady.xlsx")
+    em = ExcelManager("Bellini Classes S26.xlsx")
     em.addToDatabaseFromSheet("BelliniClassesS26")
 
 

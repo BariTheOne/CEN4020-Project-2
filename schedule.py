@@ -1,8 +1,9 @@
 class MeetingTime:
-    def __init__(self, day, start_time, end_time):
+    def __init__(self, day, start_time, end_time, TBD=False):
         self.day = day
         self.start_time = self.to_minutes(start_time)
         self.end_time = self.to_minutes(end_time)
+        self.TBD = TBD
 
     def to_minutes(self, time_str):
         hours, minutes = map(int, time_str.split(":"))
@@ -17,7 +18,10 @@ class MeetingTime:
         return self.start_time < other.end_time and self.end_time > other.start_time
     
     def __str__(self):
-        return f"""{self.day} {self.to_hour_minute(self.start_time)} - {self.to_hour_minute(self.end_time)}"""
+        if not self.TBD:
+            return f"""{self.day} {self.to_hour_minute(self.start_time)} - {self.to_hour_minute(self.end_time)}"""
+        else:
+            return """TBD"""
 
 """
 class CourseSection:
