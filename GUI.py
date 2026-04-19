@@ -298,14 +298,7 @@ class LoginPage:
         self.role_var = tk.StringVar(value="student")
         rf = tk.Frame(card, bg=BG_MID)
         rf.pack(pady=(0, 20))
-        for text, val in [("Student", "student"), ("Instructor", "instructor"),
-                          ("TA", "ta"), ("Committee", "committee"),
-                          ("Dean", "dean")]:
-            tk.Radiobutton(rf, text=text, variable=self.role_var, value=val,
-                           bg=BG_MID, fg=FG_TEXT, selectcolor=BG_LIGHT,
-                           activebackground=BG_MID, activeforeground=ACCENT,
-                           font=("Segoe UI", 10)).pack(side="left", padx=8)
-
+        
         make_button(card, "Login", self.login).pack(pady=(0, 10))
         self.error_lbl = make_label(card, "", size=10, color=RED)
         self.error_lbl.pack()
