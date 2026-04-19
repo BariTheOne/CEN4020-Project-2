@@ -5,12 +5,62 @@ from datetime import datetime
 from Actors import *
 
 class DatabaseManager:
-    def __init__(self, database_filepath : str):
+    def __init__(self, database_filepath : str, name : str = ""):
+        self._name = name
         self._connection = sqlite3.connect(database_filepath)
         self._cursor = self._connection.cursor()
 
     def __del__(self):
         self._connection.close()
+
+    def generateReportFromDatabase(self, file_name : str = "Database_Conflict_Report", filepath : str = "") -> bool:
+        """
+        Generates a TXT report of all conflicts in the Excel sheet.
+        Returns False if conflicts are found. True otherwise.
+        """
+        #conflict flag
+        has_conflict = True
+
+        #get the list
+        section_list = self.getAllSections()
+
+        #open the report TXT file
+        with open(file_name + f"{self._name}.txt", "w", encoding="utf-8") as report:
+            
+            #Write header
+            report.write(f"---DATABASE REPORT---\n")
+
+            #Same Time and Place Check
+            #Are there 2 classes that have the same time and place?
+            report.write("\n1. SAME PLACE AND TIME CONFLICTS\n")
+            for section1, section_index1 in zip(section_list, range(0, len(section_list))):
+                for section2, section_index2 in zip(section_list[section_index1 + 1:], range(section_index1 + 1, len(section_list))):
+                    if section1.meeting_room == section2.meeting_room and\
+                        section1.meeting_time.TBD == False and\
+                        section1.meeting_time.overlaps_with(section2.meeting_time):
+                            report.write(f"""\tWARNING - Rows {section_index1} and {section_index2} [CRNs: {section1.crn}, {section2.crn}] are at same time [{section1.meeting_time}] in the same room [{section1.meeting_room}].\n""")
+                            has_conflict = False
+
+            #Proper Day Check
+            #Do the rows have the required fields?
+            report.write("\n2. MEETING DAY CHECK\n")
+
+            for section, section_index in zip(section_list, range(0, len(section_list))):
+                if section.meeting_time.day not in ["MW", "TR", "F", None]:
+                    report.write(f"""\tWARNING - Row {section_index} [CRN: {section.crn}] is not meeting on MW, TR, or F [currently {section.meeting_time.day}].\n""")
+                    has_conflict = False
+
+            #Instructor Check
+            #Do the rows have an instructor
+            report.write("\n3. INSTRUCTOR CHECK\n")
+
+            for section, section_index in zip(section_list, range(0, len(section_list))):
+                if len(self.getInstructorsFromCRN(section.crn)) == 0:
+                    report.write(f"""\tWARNING - Row {section_index} [CRN: {section.crn}] has no instructor.\n""")
+                    has_conflict = False
+
+        #return the result
+        return has_conflict
 
     def insertNewPerson(self, person : User) -> bool:
         """
@@ -1367,4 +1417,6 @@ if __name__ == "__main__":
         print(section)
 
     print("Length of results:", len(sections))
+
+    dbm.generateReportFromDatabase(file_name="TEST DB REPORT")
 

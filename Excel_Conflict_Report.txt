@@ -1,0 +1,73 @@
+---EXCEL SHEET REPORT---
+
+1. COLUMNS
+ - This spreadsheet is missing a column called "CAPACITY".
+
+2. REQUIRED FIELDS
+	ERROR - Row 147 has no CRN.
+	ERROR - Row 147 has no CAMPUS.
+	ERROR - Row 147 has no CRSE LEVL.
+	ERROR - Row 147 has no CRSE SECTION.
+	ERROR - Row 147 has no SUBJ.
+	ERROR - Row 147 has no CRSE NUMB.
+	ERROR - Row 147 has no CRSE TITLE.
+
+3. DUPLICATE CRNs
+	ERROR - Rows 45 and 82 have the same CRN [15080].
+	ERROR - Rows 97 and 124 have the same CRN [17931].
+
+4. SAME PLACE AND TIME CONFLICTS
+	WARNING - Rows 2 and 3 [CRNs: 20447, 20448] are at same time [MW, 06:30 PM - 07:45 PM] in the same room [CPR 115].
+	WARNING - Rows 7 and 53 [CRNs: 17922, 14905] are at same time [MW, 05:00 PM - 06:15 PM] in the same room [SOC 150].
+	WARNING - Rows 8 and 9 [CRNs: 15287, 17877] are at same time [MW, 05:00 PM - 06:15 PM] in the same room [CPR 103].
+	WARNING - Rows 10 and 11 [CRNs: 20715, 20716] are at same time [MW, 06:30 PM - 07:45 PM] in the same room [CMC 141].
+	WARNING - Rows 14 and 115 [CRNs: 20948, 20945] are at same time [R, 06:30 PM - 09:30 PM] in the same room [NES 103].
+	WARNING - Rows 19 and 45 [CRNs: 17931, 15080] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [CHE 303].
+	WARNING - Rows 22 and 23 [CRNs: 17879, 17880] are at same time [MW, 11:00 AM - 12:15 PM] in the same room [PCD 1147].
+	WARNING - Rows 40 and 57 [CRNs: 20944, 20947] are at same time [T, 06:30 PM - 09:30 PM] in the same room [CHE 302].
+	WARNING - Rows 43 and 44 [CRNs: 20701, 20702] are at same time [F, 08:00 AM - 10:45 AM] in the same room [SOC 150].
+	WARNING - Rows 63 and 64 [CRNs: 20709, 20710] are at same time [F, 08:00 AM - 10:45 AM] in the same room [SOC 151].
+	WARNING - Rows 65 and 66 [CRNs: 20712, 20713] are at same time [F, 11:00 AM - 01:45 PM] in the same room [SOC 150].
+	WARNING - Rows 71 and 74 [CRNs: 20789, 15919] are at same time [MW, 05:00 PM - 06:15 PM] in the same room [CWY 107].
+	WARNING - Rows 83 and 84 [CRNs: 15074, 20668] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [BEH 103].
+	WARNING - Rows 85 and 86 [CRNs: 20449, 20450] are at same time [MW, 03:30 PM - 04:45 PM] in the same room [SOC 151].
+	WARNING - Rows 88 and 89 [CRNs: 17915, 17916] are at same time [MW, 03:30 PM - 04:45 PM] in the same room [PCD 1147].
+	WARNING - Rows 93 and 94 [CRNs: 20792, 20706] are at same time [TR, 08:00 AM - 09:15 AM] in the same room [SOC 150].
+	WARNING - Rows 100 and 102 [CRNs: 20446, 21013] are at same time [TR, 02:00 PM - 03:15 PM] in the same room [CWY 109].
+	WARNING - Rows 100 and 103 [CRNs: 20446, 21062] are at same time [TR, 02:00 PM - 03:15 PM] in the same room [CWY 109].
+	WARNING - Rows 102 and 103 [CRNs: 21013, 21062] are at same time [TR, 02:00 PM - 03:15 PM] in the same room [CWY 109].
+	WARNING - Rows 108 and 109 [CRNs: 15077, 17923] are at same time [TR, 06:30 PM - 07:45 PM] in the same room [CHE 101].
+	WARNING - Rows 120 and 121 [CRNs: 15280, 15281] are at same time [MW, 05:00 PM - 06:15 PM] in the same room [ISA 1061].
+	WARNING - Rows 125 and 126 [CRNs: 15120, 15121] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [BSN 1100].
+	WARNING - Rows 125 and 127 [CRNs: 15120, 15122] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [BSN 1100].
+	WARNING - Rows 125 and 128 [CRNs: 15120, 15123] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [BSN 1100].
+	WARNING - Rows 126 and 127 [CRNs: 15121, 15122] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [BSN 1100].
+	WARNING - Rows 126 and 128 [CRNs: 15121, 15123] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [BSN 1100].
+	WARNING - Rows 127 and 128 [CRNs: 15122, 15123] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [BSN 1100].
+	WARNING - Rows 129 and 130 [CRNs: 20703, 20704] are at same time [MW, 03:30 PM - 04:45 PM] in the same room [SOC 150].
+	WARNING - Rows 131 and 132 [CRNs: 14910, 14911] are at same time [MW, 03:30 PM - 04:45 PM] in the same room [CWY 107].
+	WARNING - Rows 134 and 135 [CRNs: 15278, 20443] are at same time [TR, 11:00 AM - 12:15 PM] in the same room [SOC 152].
+	WARNING - Rows 136 and 137 [CRNs: 15284, 17925] are at same time [TR, 03:30 PM - 04:45 PM] in the same room [CIS 1048].
+	WARNING - Rows 142 and 143 [CRNs: 15081, 15082] are at same time [MW, 02:00 PM - 03:15 PM] in the same room [CWY 109].
+	WARNING - Rows 145 and 146 [CRNs: 15288, 15289] are at same time [MW, 12:30 PM - 01:45 PM] in the same room [CHE 217].
+
+5. MEETING DAY CHECK
+	WARNING - Row 14 [CRN: 20948] is not meeting on MW, TR, or F [currently R].
+	WARNING - Row 27 [CRN: 16009] is not meeting on MW, TR, or F [currently W].
+	WARNING - Row 28 [CRN: 16010] is not meeting on MW, TR, or F [currently W].
+	WARNING - Row 31 [CRN: 16014] is not meeting on MW, TR, or F [currently W].
+	WARNING - Row 32 [CRN: 16015] is not meeting on MW, TR, or F [currently R].
+	WARNING - Row 36 [CRN: 16021] is not meeting on MW, TR, or F [currently T].
+	WARNING - Row 37 [CRN: 16022] is not meeting on MW, TR, or F [currently T].
+	WARNING - Row 40 [CRN: 20944] is not meeting on MW, TR, or F [currently T].
+	WARNING - Row 48 [CRN: 21275] is not meeting on MW, TR, or F [currently S].
+	WARNING - Row 49 [CRN: 21276] is not meeting on MW, TR, or F [currently S].
+	WARNING - Row 57 [CRN: 20947] is not meeting on MW, TR, or F [currently T].
+	WARNING - Row 68 [CRN: 20946] is not meeting on MW, TR, or F [currently R].
+	WARNING - Row 105 [CRN: 20664] is not meeting on MW, TR, or F [currently W].
+	WARNING - Row 115 [CRN: 20945] is not meeting on MW, TR, or F [currently R].
+
+6. INSTRUCTOR CHECK
+	WARNING - Row 81 [CRN: 17912] has no instructor.
+	WARNING - Row 103 [CRN: 21062] has no instructor.
+	WARNING - Row 147 [CRN: None] has no instructor.

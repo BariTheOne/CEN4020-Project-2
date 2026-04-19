@@ -119,6 +119,110 @@ class ExcelManager:
             else:
                 return num
 
+    def generateReportFromSheet(self, file_name : str = "Excel_Conflict_Report", filepath : str = "") -> bool:
+        """
+        Generates a TXT report of all conflicts in the Excel sheet.
+        Returns False if conflicts are found. True otherwise.
+        """
+
+        #conflict flag
+        has_conflict = True
+
+        #open the report TXT file
+        with open(file_name + ".txt", "w", encoding="utf-8") as report:
+
+            #Write header
+            report.write(f"---EXCEL SHEET REPORT---\n")
+
+            #Column check
+            #Does it have all the columns the system needs?
+            report.write("\n1. COLUMNS\n")
+
+            keys = self._map.keys()
+            expected_columns = [
+                "CAMPUS",
+                "CRSE LEVL",
+                "CRSE SECTION",
+                "CRN",
+                "SUBJ",
+                "CRSE NUMB",
+                "CRSE TITLE",
+                "ENROLLMENT",
+                "CAPACITY",
+                "MEETING DAYS",
+                "MEETING TIMES",
+                "MEETING ROOM",
+            ]
+
+            for column in expected_columns:
+                if column not in keys:
+                    report.write(f""" - This spreadsheet is missing a column called "{column}".\n""")
+                    has_conflict = False
+        
+            #7 Required Fields Check
+            #Do the rows have the required fields?
+            report.write("\n2. REQUIRED FIELDS\n")
+
+            required_fields = [
+                "CRN",
+                "CAMPUS",
+                "CRSE LEVL",
+                "CRSE SECTION",
+                "SUBJ",
+                "CRSE NUMB",
+                "CRSE TITLE"
+            ]
+            for row, row_index in zip(self._sheet.iter_rows(2, self._sheet.max_row), range(2, self._sheet.max_row)):
+                for field in required_fields:
+                    if row[self._map[field]].value == None:
+                        report.write(f"""\tERROR - Row {row_index} has no {field}.\n""")
+                        has_conflict = False
+
+            #Duplicate CRN Check
+            #Are there 2 classes with the same CRN?
+            report.write("\n3. DUPLICATE CRNs\n")
+
+            for row1, row_index1 in zip(self._sheet.iter_rows(2, self._sheet.max_row), range(2, self._sheet.max_row)):
+                for row2, row_index2 in zip(self._sheet.iter_rows(row_index1 + 1, self._sheet.max_row), range(row_index1 + 1, self._sheet.max_row)):
+                    if row1[self._map["CRN"]].value == row2[self._map["CRN"]].value:
+                        report.write(f"""\tERROR - Rows {row_index1} and {row_index2} have the same CRN [{row1[self._map["CRN"]].value}].\n""")
+                        has_conflict = False
+
+            #Same Time and Place Check
+            #Are there 2 classes that have the same time and place?
+            report.write("\n4. SAME PLACE AND TIME CONFLICTS\n")
+
+            for row1, row_index1 in zip(self._sheet.iter_rows(2, self._sheet.max_row), range(2, self._sheet.max_row)):
+                for row2, row_index2 in zip(self._sheet.iter_rows(row_index1 + 1, self._sheet.max_row), range(row_index1 + 1, self._sheet.max_row)):
+                    if row1[self._map["MEETING DAYS"]].value == row2[self._map["MEETING DAYS"]].value and\
+                            row1[self._map["MEETING TIMES"]].value == row2[self._map["MEETING TIMES"]].value and\
+                            row1[self._map["MEETING ROOM"]].value == row2[self._map["MEETING ROOM"]].value and\
+                            row1[self._map["MEETING ROOM"]].value != "OFFT OFF" and\
+                            row1[self._map["MEETING ROOM"]].value != "TBAT TBA":
+                        report.write(f"""\tWARNING - Rows {row_index1} and {row_index2} [CRNs: {row1[self._map["CRN"]].value}, {row2[self._map["CRN"]].value}] are at same time [{row1[self._map["MEETING DAYS"]].value}, {row1[self._map["MEETING TIMES"]].value}] in the same room [{row1[self._map["MEETING ROOM"]].value}].\n""")
+                        has_conflict = False
+
+            #Proper Day Check
+            #Do the rows have the required fields?
+            report.write("\n5. MEETING DAY CHECK\n")
+
+            for row, row_index in zip(self._sheet.iter_rows(2, self._sheet.max_row), range(2, self._sheet.max_row)):
+                if row[self._map["MEETING DAYS"]].value not in ["MW", "TR", "F", None]:
+                    report.write(f"""\tWARNING - Row {row_index} [CRN: {row[self._map["CRN"]].value}] is not meeting on MW, TR, or F [currently {row[self._map["MEETING DAYS"]].value}].\n""")
+                    has_conflict = False
+
+            #Instructor Check
+            #Do the rows have an instructor
+            report.write("\n6. INSTRUCTOR CHECK\n")
+
+            for row, row_index in zip(self._sheet.iter_rows(2, self._sheet.max_row), range(2, self._sheet.max_row)):
+                if row[self._map["INSTRUCTOR"]].value == None:
+                    report.write(f"""\tWARNING - Row {row_index} [CRN: {row[self._map["CRN"]].value}] has no instructor.\n""")
+                    has_conflict = False
+
+        #return the bool
+        return has_conflict
+
     #the following methods are really to made the code easier to read.
     def _createTables(self, connection : sqlite3.Connection, cursor : sqlite3.Cursor) -> bool:
         """
@@ -316,6 +420,12 @@ class ExcelManager:
 
     #ADD TO DATABASE FROM SHEET
     def addToDatabaseFromSheet(self, database_name : str, database_filepath = ""):
+        
+        #check if the spreadsheet is valid
+        if self.generateReportFromSheet() == False:
+            print("Error!: This spreadsheet has issues. Please look at the report for details.\nAborting...")
+            return
+        
         #get the full path
         full_path = database_filepath + database_name + ".db"
 
@@ -479,7 +589,7 @@ class ExcelManager:
 #DEBUGGING
 if __name__ == "__main__":
     em = ExcelManager("Bellini Classes S26.xlsx")
-    em.addToDatabaseFromSheet("BelliniClassesS26")
+    em.addToDatabaseFromSheet("TEST")
 
 
     """
